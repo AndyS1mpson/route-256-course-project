@@ -1,7 +1,7 @@
 ## Project as part of the “Route 256: Go-middle developer” course from Ozon Tech
 
 
-# Microservices
+### Microservices
 
 1. LOMS (Logistics and Order Management System) - service responsible for order tracking and logistics.
 2. Checkout - service responsible for the user's shopping cart and order processing.
