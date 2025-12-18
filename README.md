@@ -1,79 +1,79 @@
-## Реализация проекта в рамках курса "Go-middle разработчик" от Ozon Tech
+## Project as part of the “Route 256: Go-middle developer” course from Ozon Tech
 
 
-# Описание системы
+# Microservices
 
-1. LOMS (Logistics and Order Management System) - сервис, отвечающий за учет заказов и логистику.
-2. Checkout - сервис, отвечающий за корзину пользователя и оформление заказа.
-3. Notifications - сервис, отвечающий за отправку уведомлений.
-4. ProductService - внешний сервис, который предоставляет информацию о товарах.
+1. LOMS (Logistics and Order Management System) - service responsible for order tracking and logistics.
+2. Checkout - service responsible for the user's shopping cart and order processing.
+3. Notifications - service responsible for sending notifications.
+4. ProductService - an external service that provides information about products.
 
-### Путь покупки товаров
+### The path to purchasing goods
 * Checkout.addToCart  
-    * добавляем в корзину и проверяем, что есть в наличии)
-* Можем удалять из корзины
-* Можем получать список товаров корзины
-    * название и цена тянутся из ProductService.get_product
-* Приобретаем товары через Checkout.purchase
-    * идем в LOMS.createOrder и создаем заказ
-    * У заказа статус new
-    * LOMS резервирует нужное количество единиц товара
-    * Если не удалось зарезервить, заказ падает в статус failed
-    * Если удалось, падаем в статус awaiting payment
-* Оплачиваем заказ
-    * Вызываем LOMS.orderPayed
-    * Резервы переходят в списание товара со склада
-    * Заказ идет в статус payed
-* Можно отменить заказ до оплаты
-    * Вызываем LOMS.cancelOrder
-    * Все резервирования по заказу отменяются, товары снова доступны другим пользователям
-    * Заказ переходит в статус cancelled
-    * LOMS должен сам отменять заказы по таймауту, если не оплатили в течение 10 минут
+    * add to cart and check availability
+    * We can delete from the cart
+    * We can receive a list of items in the shopping cart
+    * The name and price are retrieved from ProductService.get_product.
+* We purchase goods through Checkout.purchase
+    * Go to LOMS.createOrder and create an order.
+    * The order has the status new
+    * LOMS reserves the required number of items
+    * If the reservation fails, the order status changes to failed.
+    * If successful, we fall into the status of awaiting payment.
+* Purchase the order
+    * Use LOMS.orderPayed
+    * Reserves are transferred to write-offs of goods from the warehouse.
+    * The order is in the paid status.
+* You can cancel your order before payment.
+    * Call LOMS.cancelOrder
+    * All reservations for the order are canceled, and the items are once again available to other users.
+    * The order changes to cancelled status.
+    * LOMS should cancel orders itself after a timeout if they have not been paid for within 10 minutes.
 
 
-## Схема баз данных
+## Database schema
 <img width="1253" alt="image" src="https://github.com/deerc-dev/openedx-admin/assets/45228812/beb54696-c907-41e5-ab69-6302a6d53801">
 
-# Локальная разработка
+# Local development
 
-1. В папку deployments необходимо добавить .env файл по аналогии с example.env, в котором указаны параметры подключения к базам данных микросервисом 
-2. В папки checkout, loms, notifications необходимо добавить файлы config.yaml по аналогии с config.example.yaml
-3. В папку certs необходимо добавить свой SSL сертификат
-4. Запустить окружение для мониторинга логов и подождать пока все поднимется:
+1. Add a .env file to the deployments folder, similar to example.env, which specifies the parameters for connecting to databases via microservices. 
+2. Add config.yaml files to the checkout, loms, and notifications folders, similar to config.example.yaml.
+3. Add your SSL certificate to the certs folder.
+4. Start the environment for monitoring logs and wait until everything is up and running:
 > make run-log-env
-5. Если в предыдущем шаге все сервисы поднялись без ошибок, в отдельном терминале поднять окружение сервисов:
+5. If all services started without errors in the previous step, start the service environment in a separate terminal:
 > make run-services
 
 
-## Создание миграций
-1. Чтобы выполнить миграцию баз данных, необходимо установить библиотеку goose:
+## Make migrations
+1. To perform database migration, you need to install the goose library:
 > go install github.com/pressly/goose/v3/cmd/goose@latest
 
-2. Перейти в папку migration соответствующего микросервиса и выполнить команду:
-> goose create \*имя миграции\* sql
+2. Go to the migration folder of the corresponding microservice and run the command:
+> goose create \*migration name\* sql
 
-3. В терминале импортировать соответствующую переменную окружения:
-> CH_POSTGRES_URL  # connection string для сервиса checkout  
-> LOMS_POSTGRES_URL # connection string для сервиса loms  
-> NOTIF_POSTGRES_URL # connection string для сервиса notifications
-4. выполнить комманду:
+3. In the terminal, import the corresponding environment variable:
+> CH_POSTGRES_URL  # connection string for checkout service  
+> LOMS_POSTGRES_URL # connection string for loms service  
+> NOTIF_POSTGRES_URL # connection string for notifications service
+4. do the command:
 > make migrate
 
-## Мониторинг логов
-1. Необходимо через браузер зайти в Graylog (по умолчанию порт 7555)
-2. Нажать на "Systems/Inputs", перейти в "Inputs"
-3. Выбрать "GELF TCP" и нажать на кнопку "Launch new input"
-4. Включить "Global"
-5. В поле "Title" вставить желаемое имя инпута (например, checkout или loms)
-6. Для checkout оставить порт 12201, для loms изменить на 12202, для notifications изменить на 12203
+## Logs monitoring
+1. Access Graylog via your browser (default port 7555).
+2. Click on “Systems/Inputs” and go to “Inputs.”
+3. Select “GELF TCP” and click on the “Launch new input” button.
+4. Enable “Global.”
+5. In the “Title” field, enter the desired input name (for example, checkout or loms).
+6. For checkout, leave port 12201, for loms change to 12202, for notifications change to 12203.
 
-## Мониторинг трейсов
-Jaeger доступен по порту 16686
+## Trace monitoring
+Jaeger is available on port 16686.
 
-## Мониторинг метрик в Prometheus + Grafana
-1. Перейти на http://localhost:3000
-2. Создать новый Data source:
-    a. в поле Prometheus server URL указать http://localhost:9090,
-    b. scrape interval указать 5s (как в prometheus.yml)
-3. Создать новый Dashboard, в качестве data source указать Prometheus
-4. Выбрать интересующую метрику
+## Metrics monitoring: Prometheus + Grafana
+1. Go to http://localhost:3000
+2. Create a new Data source:
+    a. In the Prometheus server URL field, enter http://localhost:9090,
+    b. Set the scrape interval to 5s (as in prometheus.yml)
+3. Create a new Dashboard and select Prometheus as the data source
+4. Select the metric you are interested in
